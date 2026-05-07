@@ -1,0 +1,17 @@
+{
+  "name": "meu-projeto",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "ts-node src/server.ts"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.9.0",
+    "serialport": "^13.0.0"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  }
+}

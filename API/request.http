@@ -1,0 +1,295 @@
+### =========================================
+### SISTEMA DE SEGURANÇA - COZINHA INDUSTRIAL
+### Base URL: http://localhost:3000 (servidor da API)
+### Front (WEb) roda em: http://localhost:5173
+### =========================================
+
+@baseUrl = http://localhost:3000
+
+
+
+### ─────────────────────────────────────────
+### STATUS DO SISTEMA
+### ─────────────────────────────────────────
+
+### Buscar status atual
+GET http://localhost:3000/status
+Content-Type: application/json
+
+###
+
+### Atualizar status (atuadores + sensores)
+PUT http://localhost:3000/status
+Content-Type: application/json
+
+{
+  "calor": 0,
+  "fumaca": 0,
+  "glp": 0,
+  "movimento": 1,
+  "ventilacao": 1,
+  "gas": 1,
+  "bomba": 0,
+  "tomadas": 1,
+  "estado_geral": "NORMAL"
+}
+
+###
+
+### Simular alerta de incêndio
+PUT http://localhost:3000/status
+Content-Type: application/json
+
+{
+  "calor": 1,
+  "fumaca": 1,
+  "glp": 0,
+  "movimento": 1,
+  "ventilacao": 1,
+  "gas": 0,
+  "bomba": 1,
+  "tomadas": 0,
+  "estado_geral": "INCENDIO"
+}
+
+###
+
+### Simular vazamento de gás
+PUT http://localhost:3000/status
+Content-Type: application/json
+
+{
+  "calor": 0,
+  "fumaca": 0,
+  "glp": 1,
+  "movimento": 0,
+  "ventilacao": 1,
+  "gas": 0,
+  "bomba": 0,
+  "tomadas": 0,
+  "estado_geral": "EMERGENCIA"
+}
+
+###
+
+### Resetar sistema para NORMAL
+POST {{baseUrl}}/status/reset
+Content-Type: application/json
+
+
+
+
+
+### ─────────────────────────────────────────
+### EVENTOS (LOG DE OCORRÊNCIAS)
+### ─────────────────────────────────────────
+
+### Listar todos os eventos
+GET http://localhost:3000/eventos
+Content-Type: application/json
+
+###
+
+### Buscar evento por ID
+GET http://localhost:3000/eventos/1
+Content-Type: application/json
+
+###
+
+### Buscar eventos por tipo: ALERTA
+GET http://localhost:3000/eventos/tipo/ALERTA
+Content-Type: application/json
+
+###
+
+### Buscar eventos por tipo: INCENDIO
+GET http://localhost:3000/eventos/tipo/INCENDIO
+Content-Type: application/json
+
+###
+
+### Buscar eventos por tipo: EMERGENCIA
+GET http://localhost:3000/eventos/tipo/EMERGENCIA
+Content-Type: application/json
+
+###
+
+### Registrar evento de ALERTA de calor
+POST http://localhost:3000/eventos
+Content-Type: application/json
+
+{
+  "tipo": "ALERTA",
+  "mensagem": "Temperatura acima de 60°C detectada",
+  "sensor": "calor",
+  "atuador": "ventilacao"
+}
+
+###
+
+### Registrar evento de INCÊNDIO
+POST http://localhost:3000/eventos
+Content-Type: application/json
+
+{
+  "tipo": "INCENDIO",
+  "mensagem": "Incêndio detectado: fumaça + temperatura crítica",
+  "sensor": "fumaca,calor",
+  "atuador": "bomba,gas,tomadas"
+}
+
+###
+
+### Registrar evento de EMERGÊNCIA (vazamento GLP)
+POST http://localhost:3000/eventos
+Content-Type: application/json
+
+{
+  "tipo": "EMERGENCIA",
+  "mensagem": "Vazamento de GLP detectado - válvula fechada automaticamente",
+  "sensor": "glp",
+  "atuador": "gas,ventilacao"
+}
+
+###
+
+### Registrar evento de movimento
+POST http://localhost:3000/eventos
+Content-Type: application/json
+
+{
+  "tipo": "INFO",
+  "mensagem": "Presença detectada na cozinha",
+  "sensor": "movimento"
+}
+
+###
+
+### Deletar evento por ID
+DELETE http://localhost:3000/eventos/1
+Content-Type: application/json
+
+###
+
+### Limpar todos os eventos
+DELETE http://localhost:3000/eventos
+Content-Type: application/json
+
+
+### ─────────────────────────────────────────
+### HISTÓRICO DE SENSORES
+### ─────────────────────────────────────────
+
+### Listar todo o histórico
+GET http://localhost:3000/historico
+Content-Type: application/json
+
+###
+
+### Buscar registro por ID
+GET http://localhost:3000/historico/1
+Content-Type: application/json
+
+###
+
+### Registrar leitura de sensores (snapshot)
+POST http://localhost:3000/historico
+Content-Type: application/json
+
+{
+  "calor": 0,
+  "fumaca": 0,
+  "glp": 0,
+  "movimento": 1
+}
+
+###
+
+### Registrar leitura com sensores ativos
+POST http://localhost:3000/historico
+Content-Type: application/json
+
+{
+  "calor": 1,
+  "fumaca": 1,
+  "glp": 0,
+  "movimento": 1
+}
+
+###
+
+### Limpar histórico
+DELETE http://localhost:3000/historico
+Content-Type: application/json
+
+
+### ─────────────────────────────────────────
+### NOTIFICAÇÕES
+### ─────────────────────────────────────────
+
+### Listar todas as notificações
+GET http://localhost:3000/notificacoes
+Content-Type: application/json
+
+###
+
+### Buscar notificação por ID
+GET http://localhost:3000/notificacoes/1
+Content-Type: application/json
+
+###
+
+### Criar notificação por e-mail
+POST http://localhost:3000/notificacoes
+Content-Type: application/json
+
+{
+  "tipo": "EMAIL",
+  "destino": "responsavel@cozinha.com",
+  "mensagem": "ALERTA: Incêndio detectado na cozinha industrial. Sistema de supressão ativado.",
+  "enviado": 0
+}
+
+###
+
+### Criar notificação por SMS
+POST http://localhost:3000/notificacoes
+Content-Type: application/json
+
+{
+  "tipo": "SMS",
+  "destino": "+5513999999999",
+  "mensagem": "EMERGENCIA: Vazamento de GLP! Válvula fechada. Evacue o local.",
+  "enviado": 0
+}
+
+###
+
+### Criar notificação push
+POST http://localhost:3000/notificacoes
+Content-Type: application/json
+
+{
+  "tipo": "PUSH",
+  "destino": "app-mobile",
+  "mensagem": "Movimento detectado na cozinha às 23:45. Verifique.",
+  "enviado": 0
+}
+
+###
+
+### Marcar notificação como enviada
+PUT http://localhost:3000/notificacoes/1/enviada
+Content-Type: application/json
+
+###
+
+### Deletar notificação por ID
+DELETE http://localhost:3000/notificacoes/1
+Content-Type: application/json
+
+###
+
+### Limpar todas as notificações
+DELETE http://localhost:3000/notificacoes
+Content-Type: application/json

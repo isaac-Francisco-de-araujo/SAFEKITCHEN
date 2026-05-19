@@ -1,5 +1,3 @@
-// useSafetyData — Integração REAL com backend SAFEKITCHEN
-
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -63,10 +61,12 @@ export function useSafetyData() {
     useRef<SystemStatus>("normal");
 
   // ===========================================================================
-  // BACKEND INTEGRATION
+  // BACKEND
   // ===========================================================================
 
   useEffect(() => {
+    let mounted = true;
+
     async function carregarDados() {
       try {
         const [
@@ -77,8 +77,7 @@ export function useSafetyData() {
           listarEventos(),
         ]);
 
-        console.log("STATUS:", statusData);
-        console.log("EVENTOS:", eventosData);
+        if (!mounted) return;
 
         setNow(new Date());
 
@@ -86,10 +85,10 @@ export function useSafetyData() {
         setSensors((prev) =>
           prev.map((sensor) => {
             const values: Record<string, number> = {
-              S_calor: statusData.calor,
-              S_fumaca: statusData.fumaca,
-              S_GLP: statusData.glp,
-              S_movimento: statusData.movimento,
+              S_calor: Number(statusData.calor ?? 0),
+              S_fumaca: Number(statusData.fumaca ?? 0),
+              S_GLP: Number(statusData.glp ?? 0),
+              S_movimento: Number(statusData.movimento ?? 0),
             };
 
             const value =
@@ -106,7 +105,7 @@ export function useSafetyData() {
           })
         );
 
-        // Converter eventos em alertas
+        // Eventos -> alertas
         const eventosConvertidos: AlertMessage[] =
           eventosData.map((evento: any) => ({
             id: String(evento.id),
@@ -127,64 +126,30 @@ export function useSafetyData() {
 
         setHistory(eventosConvertidos);
 
-      } catch (err) {
+      } catch (error) {
         console.error(
-          "Erro ao carregar backend:",
-          err
+          "Erro ao carregar dados:",
+          error
         );
       }
     }
 
     carregarDados();
 
-    // Atualiza automaticamente
-    const interval = setInterval(() => {
-      carregarDados();
-    }, 3000);
+    const interval = setInterval(
+      carregarDados,
+      3000
+    );
 
-    return () => clearInterval(interval);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
 
   }, []);
 
   // ===========================================================================
-  // SÉRIE TEMPORAL
-  // ===========================================================================
-
-  useEffect(() => {
-    const t = now.toLocaleTimeString(
-      "pt-BR",
-      {
-        hour: "2-digit",
-        minute: "2-digit",
-      }
-    );
-
-    setSeries((prev) => [
-      ...prev,
-      {
-        t,
-
-        calor:
-          sensors.find(
-            (s) => s.id === "S_calor"
-          )?.value ?? 0,
-
-        fumaca:
-          sensors.find(
-            (s) => s.id === "S_fumaca"
-          )?.value ?? 0,
-
-        glp:
-          sensors.find(
-            (s) => s.id === "S_GLP"
-          )?.value ?? 0,
-      },
-    ].slice(-20));
-
-  }, [now, sensors]);
-
-  // ===========================================================================
-  // STATUS SISTEMA
+  // STATUS
   // ===========================================================================
 
   const status: SystemStatus = useMemo(
@@ -224,83 +189,126 @@ export function useSafetyData() {
     [sensors, status]
   );
 
-  // ===========================================================================
-  // LOG DE STATUS
-  // ===========================================================================
-
-  useEffect(() => {
-
-    if (status !== lastStatus.current) {
-
-      const t = new Date()
-        .toLocaleTimeString("pt-BR");
-
-      const map: Record<
-        SystemStatus,
-        AlertMessage
-      > = {
-
-        normal: {
-          id: `n-${Date.now()}`,
-          level: "info",
-          message:
-            "Sistema voltou ao normal",
-          time: t,
-        },
-
-        alert: {
-          id: `a-${Date.now()}`,
-          level: "warning",
-          message:
-            "Alerta detectado",
-          time: t,
-        },
-
-        fire: {
-          id: `f-${Date.now()}`,
-          level: "critical",
-          message:
-            "Incêndio detectado",
-          time: t,
-        },
-
-        explosion: {
-          id: `e-${Date.now()}`,
-          level: "critical",
-          message:
-            "Vazamento de GLP detectado",
-          time: t,
-        },
-
-        emergency: {
-          id: `em-${Date.now()}`,
-          level: "critical",
-          message:
-            "Emergência manual ativada",
-          time: t,
-        },
-      };
-
-      setHistory((prev) => [
-        map[status],
-        ...prev,
-      ].slice(0, 12));
-
-      lastStatus.current = status;
-    }
-
-  }, [status]);
-
   const alerts =
     history.length > 0
       ? history
       : liveAlerts;
 
   // ===========================================================================
+  // GRÁFICOS
+  // ===========================================================================
+
+  useEffect(() => {
+
+    const calor =
+      sensors.find(
+        (s) => s.id === "S_calor"
+      )?.value ?? 0;
+
+    const fumaca =
+      sensors.find(
+        (s) => s.id === "S_fumaca"
+      )?.value ?? 0;
+
+    const glp =
+      sensors.find(
+        (s) => s.id === "S_GLP"
+      )?.value ?? 0;
+
+    const t =
+      now.toLocaleTimeString("pt-BR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+    setSeries((prev) => [
+      ...prev,
+      {
+        t,
+        calor,
+        fumaca,
+        glp,
+      },
+    ].slice(-20));
+
+  }, [sensors, now]);
+
+  // ===========================================================================
+  // HISTÓRICO DE STATUS
+  // ===========================================================================
+
+  useEffect(() => {
+
+    if (status === lastStatus.current)
+      return;
+
+    const t =
+      new Date().toLocaleTimeString(
+        "pt-BR"
+      );
+
+    const map: Record<
+      SystemStatus,
+      AlertMessage
+    > = {
+
+      normal: {
+        id: `n-${Date.now()}`,
+        level: "info",
+        message:
+          "Sistema voltou ao normal",
+        time: t,
+      },
+
+      alert: {
+        id: `a-${Date.now()}`,
+        level: "warning",
+        message:
+          "Alerta detectado",
+        time: t,
+      },
+
+      fire: {
+        id: `f-${Date.now()}`,
+        level: "critical",
+        message:
+          "Incêndio detectado",
+        time: t,
+      },
+
+      explosion: {
+        id: `e-${Date.now()}`,
+        level: "critical",
+        message:
+          "Vazamento de GLP detectado",
+        time: t,
+      },
+
+      emergency: {
+        id: `em-${Date.now()}`,
+        level: "critical",
+        message:
+          "Emergência manual ativada",
+        time: t,
+      },
+    };
+
+    setHistory((prev) => [
+      map[status],
+      ...prev,
+    ].slice(0, 12));
+
+    lastStatus.current = status;
+
+  }, [status]);
+
+  // ===========================================================================
   // AÇÕES
   // ===========================================================================
 
-  function toggleActuator(id: ActuatorId) {
+  function toggleActuator(
+    id: ActuatorId
+  ) {
 
     const current =
       actuators.find(
@@ -317,6 +325,9 @@ export function useSafetyData() {
       ...prev,
       [id]: !isOn,
     }));
+
+    // TODO:
+    // await api.toggleActuator(id, !isOn)
   }
 
   function triggerEmergency() {

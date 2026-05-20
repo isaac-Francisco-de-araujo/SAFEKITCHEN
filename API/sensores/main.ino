@@ -3,6 +3,7 @@
 // =========================================
 
 // ---------- SENSORES ----------
+#include <Arduino.h>
 
 const int PIN_GAS = A0;
 const int PIN_FUMACA = A1;

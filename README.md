@@ -61,6 +61,7 @@ Histórico operacional
 Indicadores em tempo real
  Estrutura do Projeto
 SAFEKITCHEN/
+
 │
 ├── backend/
 │   ├── src/
@@ -76,6 +77,8 @@ SAFEKITCHEN/
 │
 └── arduino/
     └── codigo_arduino.ino
+
+    
      Instalação
  Clone o repositório
 git clone https://github.com/isaac-Francisco-de-araujo/SAFEKITCHEN.git
